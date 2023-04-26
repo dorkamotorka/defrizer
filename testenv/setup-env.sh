@@ -22,4 +22,4 @@ set -o nounset
 
 mount -t bpf bpf /sys/fs/bpf/ || die "Unable to mount /sys/fs/bpf inside test environment"
 
-exec "$@"
+exec $@
