@@ -9,37 +9,21 @@ network namespace. You can load the XDP program in the other namespace and
 send traffic to it through the interface that is visible in the root
 namespace.
 
-Run =./testenv.sh= with no parameter to get a list of available commands, or
-run =./testenv.sh --help= to get the full help listing with all options. The
-script can maintain several environments active at the same time, and you
-can switch between them using the =--name= option.
+## Run
 
-If you don't specify a name, the most recently used environment will be
-used. If you don't specify a name when setting up a new environment, a
-random name will be generated for you.
+The client can be run using:
 
-Examples:
+	sudo ./testenv.sh ping --name veth-basic2
 
-Setup new environment named "test":
-=./testenv.sh setup --name=test=
+You can check if the BPF program is running on the netdev using:
 
-Create a shell alias for easy use of script from anywhere:
-=eval $(./testenv.sh alias)=
+	ip link list dev veth-basic2
 
-See the currently active environment, and a list of all active environment
-names (with alias defined as above):
-=t status=
+You should have bind it to a netdev using:
 
-Enter the currently active environment:
-=t enter=
+	sudo ./af_xdp_user --dev veth-basic2 --force --progsec xdp_sock
 
-Execute a command inside the environment:
-=t exec -- ip a=
-
-Teardown the environment:
-=t teardown=
-
-* Understanding the network topology
+## Understanding the network topology
 
 When setting up a test environment, there will be a virtual link between the
 environment inside the new namespace, and the interface visible from the
