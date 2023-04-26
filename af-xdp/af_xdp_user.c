@@ -23,13 +23,17 @@
 #include <linux/if_link.h>
 #include <linux/if_ether.h>
 #include <linux/ipv6.h>
+#include <linux/ip.h>
 #include <linux/icmpv6.h>
-
+#include <linux/tcp.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "../common/common_params.h"
 #include "../common/common_user_bpf_xdp.h"
 #include "../common/common_libbpf.h"
 
+#include "bpf_endian.h"
 
 #define NUM_FRAMES         4096
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE
@@ -272,12 +276,37 @@ static inline void csum_replace2(__sum16 *sum, __be16 old, __be16 new)
 	*sum = ~csum16_add(csum16_sub(~(*sum), old), new);
 }
 
+/* Packet parsing function */
 static bool process_packet(struct xsk_socket_info *xsk,
 			   uint64_t addr, uint32_t len)
 {
+   	// Returns packet "data" variable (check xdp_md struct)
 	uint8_t *pkt = xsk_umem__get_data(xsk->umem->buffer, addr);
+	struct ethhdr *eth = (struct ethhdr *) pkt;
+	printf("Ether(src=%02x:%02x:%02x:%02x:%02x:%02x dst=%02x:%02x:%02x:%02x:%02x:%02x)",
+		eth->h_source[0], eth->h_source[1], eth->h_source[2],
+		eth->h_source[3], eth->h_source[4], eth->h_source[5],
+		eth->h_dest[0], eth->h_dest[1], eth->h_dest[2],
+		eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
+	struct ipv6hdr *ip = (struct ipv6hdr *) (eth + 1);
+	char src_addr_str[INET6_ADDRSTRLEN];
+	char dst_addr_str[INET6_ADDRSTRLEN];
+	inet_ntop(AF_INET6, &(ip->saddr), src_addr_str, INET6_ADDRSTRLEN);
+	inet_ntop(AF_INET6, &(ip->daddr), dst_addr_str, INET6_ADDRSTRLEN);
+	printf("  IP(src=%s dst=%s)", src_addr_str, dst_addr_str);
+	struct tcphdr *tcp = (struct tcphdr *) (ip + 1);
+	int tcp_header_len = tcp->doff * 4; // doff = number of words in TCP header * 4 bytes (each word is 32 bytes == 4 bytes)
+	printf("    TCP(sport=%d dport=%d seq=%u ack_seq=%u syn=%u doff=%u",
+           bpf_ntohs(tcp->source), bpf_ntohs(tcp->dest), tcp->seq, tcp->ack_seq, tcp->syn, tcp->doff);
+	uint8_t *tcp_options = (uint8_t *) tcp + sizeof(struct tcphdr);
+	int tcp_options_len = tcp_header_len - sizeof(struct tcphdr);
+	printf("      TCP options (len=%d): ", tcp_options_len);
+	for (int i = 0; i < tcp_options_len; i++) {
+	    printf("%02x ", tcp_options[i]);
+	}
+	printf("\n");
 
-        /* Lesson#3: Write an IPv6 ICMP ECHO parser to send responses
+        /* IPv6 ICMP ECHO parser to send responses
 	 *
 	 * Some assumptions to make it easier:
 	 * - No VLAN handling
@@ -348,7 +377,7 @@ static void handle_receive_packets(struct xsk_socket_info *xsk)
 	if (!rcvd)
 		return;
 
-	/* Stuff the ring with as much frames as possible */
+	/* Stuff the RX ring with as much frames as possible */
 	stock_frames = xsk_prod_nb_free(&xsk->umem->fq,
 					xsk_umem_free_frames(xsk));
 
@@ -369,8 +398,10 @@ static void handle_receive_packets(struct xsk_socket_info *xsk)
 		xsk_ring_prod__submit(&xsk->umem->fq, stock_frames);
 	}
 
+
 	/* Process received packets */
 	for (i = 0; i < rcvd; i++) {
+	   	/* Read metadata of the descriptor addr, len(, options) */
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 
@@ -397,6 +428,7 @@ static void rx_and_process(struct config *cfg,
 	fds[0].fd = xsk_socket__fd(xsk_socket->xsk);
 	fds[0].events = POLLIN;
 
+	/* Poll Xsk socket for new descriptors in the RX queue - which are there move from a FILL queue by kernel */
 	while(!global_exit) {
 		if (cfg->xsk_poll_mode) {
 			ret = poll(fds, nfds, -1);
@@ -537,13 +569,20 @@ int main(int argc, char **argv)
 	if (cfg.filename[0] != 0) {
 		struct bpf_map *map;
 
+		/* - Loads compiled BPF code 
+		 * - Chooses SEC
+		 * - Attaches program to a hook
+		 */
 		bpf_obj = load_bpf_and_xdp_attach(&cfg);
 		if (!bpf_obj) {
-			/* Error handling done in load_bpf_and_xdp_attach() */
 			exit(EXIT_FAILURE);
 		}
 
-		/* We also need to load the xsks_map */
+		/* We also need to load the xsks_map 
+		 * The BPF_MAP_TYPE_XSKMAP is used as a backend map (containts XSK FDs) for XDP BPF helper call bpf_redirect_map() and XDP_REDIRECT action
+		 * This map type redirects raw XDP frames to AF_XDP sockets (XSKs), a new type of address family in the kernel that allows
+		 * redirection of frames from a driver to user space without having to traverse the full network stack
+		 * */
 		map = bpf_object__find_map_by_name(bpf_obj, "xsks_map");
 		xsks_map_fd = bpf_map__fd(map);
 		if (xsks_map_fd < 0) {
@@ -553,8 +592,11 @@ int main(int argc, char **argv)
 		}
 	}
 
-	/* Allow unlimited locking of memory, so all memory needed for packet
-	 * buffers can be locked.
+	/* Allow unlimited locking of memory, so all memory needed for packet buffers can be locked.
+	 * RLIMIT_MEMLOCK is a resource limit in Linux systems that restricts the amount of memory that a process can lock into physical memory, 
+	 * preventing it from being swapped out to disk. This is also known as the "locked-in-memory" limit.
+	 * Note that RLIMIT_MEMLOCK is a soft limit, which means that a process can temporarily exceed the limit if memory is available, 
+	 * but it will receive a SIGXFSZ signal if it tries to lock more memory than the hard limit
 	 */
 	if (setrlimit(RLIMIT_MEMLOCK, &rlim)) {
 		fprintf(stderr, "ERROR: setrlimit(RLIMIT_MEMLOCK) \"%s\"\n",
@@ -562,7 +604,10 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/* Allocate memory for NUM_FRAMES of the default XDP frame size */
+	/* Allocate RAM for NUM_FRAMES of the default XDP frame size 
+	 * posix_memalign() allocates size bytes and places the address of the allocated memory in *memptr (1st parameter).  
+	 * The address of the allocated memory will be a multiple of alignment (2nd parameter), which must be a power of two and a multiple of sizeof(void *)
+	 * */
 	packet_buffer_size = NUM_FRAMES * FRAME_SIZE;
 	if (posix_memalign(&packet_buffer,
 			   getpagesize(), /* PAGE_SIZE aligned */
@@ -572,7 +617,12 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/* Initialize shared packet_buffer for umem usage */
+	/* Initialize shared packet_buffer for umem usage 
+	 * UMEM = memory buffer shared by user and kernel space
+	 * When the kernel receives a packet (more specifically the device driver), 
+	 * it will write the packet bytes to a UMEM frame (a specific one known from a descriptor that the userspace put in the FILL queue) and 
+	 * then kernel code inserts the frame descriptor in the RX queue of the specific XSK socket for the userspace to consume.
+	 * */
 	umem = configure_xsk_umem(packet_buffer, packet_buffer_size);
 	if (umem == NULL) {
 		fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
@@ -580,7 +630,7 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/* Open and configure the AF_XDP (xsk) socket */
+	/* Open and configure the AF_XDP (Xsk) socket */
 	xsk_socket = xsk_configure_socket(&cfg, umem);
 	if (xsk_socket == NULL) {
 		fprintf(stderr, "ERROR: Can't setup AF_XDP socket \"%s\"\n",
