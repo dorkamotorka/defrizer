@@ -1,6 +1,4 @@
-# -*- fill-column: 76; -*-
-#+TITLE: Test environment script
-#+OPTIONS: ^:nil
+# Test environment script
 
 This directory contains a setup script that you can use to create test
 environments for testing your XDP programs. It works by creating virtual
@@ -32,11 +30,11 @@ environment name passed to the script, as will the interface visible in the
 outer namespace. The interface *inside* the namespace will always be named
 'veth0'.
 
-To illustrate this, creating a test environment with the name 'test01' (with
-=t setup --name test01= will result in the following environment being set
+To illustrate this, creating a test environment with the name `test01` (with
+ `t setup --name test01`) will result in the following environment being set
 up:
 
-#+begin_example
+```
 +-----------------------------+                          +-----------------------------+
 | Root namespace              |                          | Testenv namespace 'test01'  |
 |                             |      From 'test01'       |                             |
@@ -45,9 +43,9 @@ up:
 |                    +--------+ <-RX                <-TX +--------+                    |
 |                             |       From 'veth0'       |                             |
 +-----------------------------+                          +-----------------------------+
-#+end_example
+```
 
-The 'test01' interface visible in the root namespace is the one we will be
+The `test01` interface visible in the root namespace is the one we will be
 installing XDP programs on in the tutorial lessons. The XDP program will see
 packets being *received* on this interface; as you can see from the diagram,
 this means all packets being transmitted from inside the new namespace.
@@ -57,7 +55,7 @@ have physical interfaces; but instead of the traffic arriving from outside
 hosts on physical interfaces, they will arrive from inside the namespace on
 the virtual interface. This also means that when you generate traffic to
 test your XDP programs, you need to generate it from *inside* the test
-environment. The =t ping= command will start the ping inside the test
+environment. The `t ping` command will start the ping inside the test
 environment by default, and you can run arbitrary programs inside the
-environment by using =t exec -- <command>=, or simply spawning a shell with
-=t enter=.
+environment by using `t exec -- <command>`, or simply spawning a shell with
+`t enter`.
