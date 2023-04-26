@@ -1,6 +1,4 @@
-# -*- fill-column: 76; -*-
-#+TITLE: Test environment script
-#+OPTIONS: ^:nil
+# Test environment script
 
 This directory contains a setup script that you can use to create test
 environments for testing your XDP programs. It works by creating virtual
@@ -36,7 +34,7 @@ To illustrate this, creating a test environment with the name 'test01' (with
 =t setup --name test01= will result in the following environment being set
 up:
 
-#+begin_example
+```
 +-----------------------------+                          +-----------------------------+
 | Root namespace              |                          | Testenv namespace 'test01'  |
 |                             |      From 'test01'       |                             |
@@ -45,7 +43,7 @@ up:
 |                    +--------+ <-RX                <-TX +--------+                    |
 |                             |       From 'veth0'       |                             |
 +-----------------------------+                          +-----------------------------+
-#+end_example
+```
 
 The 'test01' interface visible in the root namespace is the one we will be
 installing XDP programs on in the tutorial lessons. The XDP program will see
