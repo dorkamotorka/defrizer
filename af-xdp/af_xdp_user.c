@@ -296,13 +296,25 @@ static bool process_packet(struct xsk_socket_info *xsk,
 	printf("  IP(src=%s dst=%s)", src_addr_str, dst_addr_str);
 	struct tcphdr *tcp = (struct tcphdr *) (ip + 1);
 	int tcp_header_len = tcp->doff * 4; // doff = number of words in TCP header * 4 bytes (each word is 32 bytes == 4 bytes)
-	printf("    TCP(sport=%d dport=%d seq=%u ack_seq=%u syn=%u doff=%u",
-           bpf_ntohs(tcp->source), bpf_ntohs(tcp->dest), tcp->seq, tcp->ack_seq, tcp->syn, tcp->doff);
-	uint8_t *tcp_options = (uint8_t *) tcp + sizeof(struct tcphdr);
-	int tcp_options_len = tcp_header_len - sizeof(struct tcphdr);
-	printf("      TCP options (len=%d): ", tcp_options_len);
-	for (int i = 0; i < tcp_options_len; i++) {
-	    printf("%02x ", tcp_options[i]);
+	printf("    TCP(sport=%d dport=%d seq=%u ack_seq=%u syn=%u doff=%u header_len=%d	",
+           bpf_ntohs(tcp->source), bpf_ntohs(tcp->dest), tcp->seq, tcp->ack_seq, tcp->syn, tcp->doff, tcp_header_len);
+	uint8_t *tcp_payload = (uint8_t *) tcp + tcp_header_len;
+	int null_index = -1;
+	for (int i = 0; i < TCP_MSS_DESIRED; i++) {
+	    printf("%02x ", tcp_payload[i]);
+	    // String is zero-terminated
+	    if (tcp_payload[i] == '\0') {
+	       null_index = i;
+	    }
+	}
+	// If a null terminator was found, extract the string data and print it
+	if (null_index >= 0) {
+	   char str_data[null_index + 1];
+	   memcpy(str_data, tcp_payload, null_index);
+	   str_data[null_index] = '\0';
+	   printf("TCP options string: %s\n", str_data);
+	} else {
+	   printf("No string found in TCP payload\n");
 	}
 	printf("\n");
 
