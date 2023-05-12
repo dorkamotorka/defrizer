@@ -1,8 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
 #include <linux/bpf.h>
-
-#include <bpf/bpf_helpers.h>
+#include "bpf_helpers.h"
 
 /* Each Xsk socket is binded to a particular netdev queue */
 struct bpf_map_def SEC("maps") xsks_map = {
@@ -14,7 +13,7 @@ struct bpf_map_def SEC("maps") xsks_map = {
 
 /* Each CPU has its own array of key:value pairs - userspace program needs to take care of aggregation */
 struct bpf_map_def SEC("maps") xdp_stats_map = {
-	.type        = BPF_MAP_TYPE_PERCPU_ARRAY,
+	.type        = BPF_MAP_TYPE_ARRAY,
 	.key_size    = sizeof(int),
 	.value_size  = sizeof(__u32),
 	.max_entries = 64,
