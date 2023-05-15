@@ -34,25 +34,26 @@ func main() {
 
 	flag.StringVar(&linkName, "linkname", "lo", "The network link on which rebroadcast should run on.")
 	flag.IntVar(&queueID, "queueid", 0, "The ID of the Rx queue to which to attach to on the network link.")
-	flag.Int64Var(&protocol, "ip-proto", 0, "If greater than 0 and less than or equal to 255, limit xdp bpf_redirect_map to packets with the specified IP protocol number.")
+	flag.Int64Var(&protocol, "ip-proto", 1, "If greater than 0 and less than or equal to 255, limit xdp bpf_redirect_map to packets with the specified IP protocol number.")
 	flag.Parse()
 
 	interfaces, err := net.Interfaces()
+	//fmt.Println(interfaces)
 	if err != nil {
-		fmt.Printf("error: failed to fetch the list of network interfaces on the system: %v\n", err)
-		return
+	   fmt.Printf("error: failed to fetch the list of network interfaces on the system: %v\n", err)
+	   return
 	}
 
 	Ifindex := -1
 	for _, iface := range interfaces {
-		if iface.Name == linkName {
-			Ifindex = iface.Index
-			break
-		}
+	   if iface.Name == linkName {
+	      Ifindex = iface.Index
+	      break
+	   }
 	}
 	if Ifindex == -1 {
-		fmt.Printf("error: couldn't find a suitable network interface to attach to\n")
-		return
+	   fmt.Printf("error: couldn't find a suitable network interface to attach to\n")
+	   return
 	}
 
 	var rLimit syscall.Rlimit
@@ -67,10 +68,11 @@ func main() {
 	if err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
 	   fmt.Println("Error Getting Rlimit ", err)
 	}
-	fmt.Println("Rlimit Final", rLimit)
+	//fmt.Println("Rlimit Final", rLimit)
 
 	var program *xdp.Program
 	// Create a new XDP eBPF program and attach it to our chosen network link.
+	// If 0 then it loads the default program in the root of the repository
 	if protocol == 0 {
 		program, err = xdp.NewProgram(queueID + 1)
 	} else {
@@ -87,8 +89,7 @@ func main() {
 	}
 	defer program.Detach(Ifindex)
 
-	// Create and initialize an XDP socket attached to our chosen network
-	// link.
+	// Create and initialize an XDP socket attached to our chosen network link.
 	xsk, err := xdp.NewSocket(Ifindex, queueID, nil)
 	if err != nil {
 		fmt.Printf("error: failed to create an XDP socket: %v\n", err)

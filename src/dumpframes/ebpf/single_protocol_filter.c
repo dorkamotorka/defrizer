@@ -9,7 +9,7 @@
 #include <linux/ipv6.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
-#include <bpf/parsing_helpers.h>
+#include "single_protocol_filter.h"
 
 #define MAX_SOCKS 64
 
@@ -76,6 +76,12 @@ SEC("xdp_sock") int xdp_sock_prog(struct xdp_md *ctx)
 	  goto out;
 	}
 
+	/*
+	if (ip_type == IPPROTO_ICMP || ip_type == IPPROTO_ICMPV6) {
+		bpf_printk("HERE\n");
+	}
+	*/
+
 	if (ip_type != IPPROTO_TCP) {
 	  // We do not need to process non-UDP traffic, pass it up the GNU/Linux network stack to be handled
 	  goto out;
@@ -86,8 +92,14 @@ SEC("xdp_sock") int xdp_sock_prog(struct xdp_md *ctx)
           goto out;
         }
 
-	// Forward TCP SYN Packets to XDP sockets
-	if (tcp->syn == 1) {
+	/*
+	bpf_printk("TCP(source=%u, dest=%u, seq=%d, ", bpf_ntohs(tcp->source), bpf_ntohs(tcp->dest), tcp->seq);
+	bpf_printk("ack_seq=%d, doff=%d, fin=%d, ", tcp->ack_seq, tcp->doff, tcp->fin);
+	bpf_printk("rst=%d, psh=%d, urg=%d, ", tcp->rst, tcp->psh, tcp->urg);
+	bpf_printk("ece=%d, cwr=%d, syn=%d\n", tcp->ece, tcp->cwr, tcp->syn);
+	*/
+	// Forward TCP Packets form specific port only
+	if (bpf_ntohs(tcp->dest) == 7777) {
 	   if (*qidconf) { 
 	      return bpf_redirect_map(&xsks_map, index, 0); 
 	   }
@@ -98,4 +110,4 @@ out:
 }
 
 //Basic license just for compiling the object code
-char __license[] SEC("license") = "LGPL-2.1 or BSD-2-Clause";
+char __license[] SEC("license") = "GPL";
