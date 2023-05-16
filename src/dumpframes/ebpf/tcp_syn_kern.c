@@ -98,7 +98,7 @@ SEC("xdp_sock") int xdp_sock_prog(struct xdp_md *ctx)
 	bpf_printk("rst=%d, psh=%d, urg=%d, ", tcp->rst, tcp->psh, tcp->urg);
 	bpf_printk("ece=%d, cwr=%d, syn=%d\n", tcp->ece, tcp->cwr, tcp->syn);
 	*/
-	// Forward TCP Packets form specific port only
+	// Forward TCP Packets from specific port only
 	if (bpf_ntohs(tcp->dest) == 7777) {
 	   if (*qidconf) { 
 	      return bpf_redirect_map(&xsks_map, index, 0); 

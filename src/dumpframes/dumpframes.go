@@ -36,20 +36,20 @@ func main() {
 	interfaces, err := net.Interfaces()
 	//fmt.Println(interfaces)
 	if err != nil {
-	   fmt.Printf("error: failed to fetch the list of network interfaces on the system: %v\n", err)
-	   return
+		fmt.Printf("error: failed to fetch the list of network interfaces on the system: %v\n", err)
+		return
 	}
 
 	Ifindex := -1
 	for _, iface := range interfaces {
-	   if iface.Name == linkName {
-	      Ifindex = iface.Index
-	      break
-	   }
+		if iface.Name == linkName {
+			Ifindex = iface.Index
+			break
+		}
 	}
 	if Ifindex == -1 {
-	   fmt.Printf("error: couldn't find a suitable network interface to attach to\n")
-	   return
+		fmt.Printf("error: couldn't find a suitable network interface to attach to\n")
+		return
 	}
 
 	var program *xdp.Program
@@ -73,7 +73,7 @@ func main() {
 		return
 	}
 
-	// Register our XDP socket file descriptor with the eBPF program so it can be redirected packets
+	// Register our XDP socket file descriptor with the eBPF program so it can redirect packets
 	if err := program.Register(queueID, xsk.FD()); err != nil {
 		fmt.Printf("error: failed to register socket in BPF map: %v\n", err)
 		return
@@ -105,17 +105,17 @@ func main() {
 			// from the Rx ring queue.
 			rxDescs := xsk.Receive(numRx)
 
-			// Print the received frames and also modify them
-			// in-place replacing the destination MAC address with
-			// broadcast address.
+			// Print the received frames
 			for i := 0; i < len(rxDescs); i++ {
-			  pktData := xsk.GetFrame(rxDescs[i])
-			  packet := gopacket.NewPacket(pktData, layers.LayerTypeEthernet, gopacket.Default)
-			  if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
-			     tcp, _ := tcpLayer.(*layers.TCP) // Get actual TCP data from this layer
-			     log.Printf("TCP(SrcPort=%d, DstPort=%d, DOFF=%d, SYN=%t, FIN=%t, ACK=%t)\n", tcp.SrcPort, tcp.DstPort, tcp.DataOffset, tcp.SYN, tcp.FIN, tcp.ACK)
-			     log.Printf("TCP Data: %s\n\n", tcp.Payload)
-			  }
+				pktData := xsk.GetFrame(rxDescs[i])
+				packet := gopacket.NewPacket(pktData, layers.LayerTypeEthernet, gopacket.Default)
+
+				// Get actual TCP data from this layer
+				if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+					tcp, _ := tcpLayer.(*layers.TCP)
+					log.Printf("TCP(SrcPort=%d, DstPort=%d, DOFF=%d, SYN=%t, FIN=%t, ACK=%t)\n", tcp.SrcPort, tcp.DstPort, tcp.DataOffset, tcp.SYN, tcp.FIN, tcp.ACK)
+					log.Printf("TCP Data: %s\n\n", tcp.Payload)
+				}
 			}
 		}
 	}
