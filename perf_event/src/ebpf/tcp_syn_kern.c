@@ -73,7 +73,14 @@ SEC("xdp_event") int perf_event_test(struct xdp_md *ctx)
    // Forward TCP Packets from specific port only
    if (bpf_ntohs(tcp->dest) == 7777) {
       unsigned char buf[] = {1, 1, 1, 2, 2};
-      return bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &buf[0], 5);
+      int ret = bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &buf[0], 5);
+
+      // In case of perf_event failure abort
+      // TODO: Probably this shouldn't impact the program and one should just pass the packet with XDP_PASS 
+      // worst case userspace normally deploys the container and does not set the flag that it received a perf_event
+      if (ret != 0) {
+	 action = XDP_ABORTED;
+      }
    }
 
 out:
