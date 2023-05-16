@@ -9,7 +9,7 @@ dport = 7777
 
 # Define the TCP flags to use - SYN Packet flag 
 # NOTE: even if you don't specify this, TCP sends the SYN packet because this is always the first packet
-flags = "F"
+flags = "S"
 
 # Define some random payload
 payload = "hello"

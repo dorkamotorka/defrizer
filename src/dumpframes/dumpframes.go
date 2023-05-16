@@ -12,12 +12,10 @@ particular network link and dumps all frames it receives to standard output.
 package main
 
 import (
-	//"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
 	"net"
-	"syscall"
 
 	"github.com/asavie/xdp"
 	"github.com/asavie/xdp/dumpframes/ebpf"
@@ -28,13 +26,11 @@ import (
 func main() {
 	var linkName string
 	var queueID int
-	var protocol int64
 
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 
 	flag.StringVar(&linkName, "linkname", "lo", "The network link on which rebroadcast should run on.")
 	flag.IntVar(&queueID, "queueid", 0, "The ID of the Rx queue to which to attach to on the network link.")
-	flag.Int64Var(&protocol, "ip-proto", 1, "If greater than 0 and less than or equal to 255, limit xdp bpf_redirect_map to packets with the specified IP protocol number.")
 	flag.Parse()
 
 	interfaces, err := net.Interfaces()
@@ -56,28 +52,9 @@ func main() {
 	   return
 	}
 
-	var rLimit syscall.Rlimit
-	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
-	   fmt.Println("Error Getting Rlimit ", err)
-	}
-	rLimit.Max = 1048576
-	rLimit.Cur = 1048576
-	if err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
-	   fmt.Println("Error Setting Rlimit ", err)
-	}
-	if err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit); err != nil {
-	   fmt.Println("Error Getting Rlimit ", err)
-	}
-	//fmt.Println("Rlimit Final", rLimit)
-
 	var program *xdp.Program
 	// Create a new XDP eBPF program and attach it to our chosen network link.
-	// If 0 then it loads the default program in the root of the repository
-	if protocol == 0 {
-		program, err = xdp.NewProgram(queueID + 1)
-	} else {
-		program, err = ebpf.NewIPProtoProgram(uint32(protocol), nil)
-	}
+	program, err = ebpf.NewTCPSynProgram(nil)
 	if err != nil {
 		fmt.Printf("error: failed to create xdp program: %v\n", err)
 		return
