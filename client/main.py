@@ -20,17 +20,10 @@ tcp = TCP(sport=5555, dport=dport, flags=flags)
 raw = Raw(load=payload)
 packet = ip/tcp/raw
 print(packet.payload)
-print(bytes(packet.payload))
 
 # Send the SYN packet and wait for a response
 while True:
     start_time = time.time()
-    syn_ack = send(packet, iface="lo", verbose=True)
+    syn_ack = send(packet)
     end_time = time.time()
     time.sleep(0.5)
-
-# If we received a response, print the response time
-if syn_ack:
-    print(f"TCP ping response time: {end_time - start_time:.3f} seconds")
-else:
-    print("TCP ping failed: no response received")
