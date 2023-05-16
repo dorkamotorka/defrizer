@@ -1,6 +1,5 @@
 // +build ignore
 
-#include <linux/bpf.h>
 #include <linux/in.h>
 #include <linux/tcp.h>
 #include <linux/if_link.h>
@@ -9,10 +8,12 @@
 #include <linux/ipv6.h>
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_endian.h>
+#include <bpf/bpf.h> /* NOTE: THIS IS ACTUALLY linux/bpf.h BUT THE BPF_MAP_TYPE_RINGBUF IS MISSING THERE SO THIS IS LOCAL HEADER IN DIR /bpf! */
 #include "tcp_syn_kern.h"
 
 struct bpf_map_def SEC("maps") events  = {
-   .type = BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+   .type = BPF_MAP_TYPE_RINGBUF,
+   .max_entries = 256 * 1024 /* 256 KB */,
 };
 
 SEC("xdp_event") int perf_event_test(struct xdp_md *ctx) 
@@ -48,12 +49,6 @@ SEC("xdp_event") int perf_event_test(struct xdp_md *ctx)
     goto out;
    }
 
-   /*
-   if (ip_type == IPPROTO_ICMP || ip_type == IPPROTO_ICMPV6) {
-	  bpf_printk("HERE\n");
-   }
-   */
-
    if (ip_type != IPPROTO_TCP) {
     // We do not need to process non-UDP traffic, pass it up the GNU/Linux network stack to be handled
     goto out;
@@ -73,7 +68,7 @@ SEC("xdp_event") int perf_event_test(struct xdp_md *ctx)
    // Forward TCP Packets from specific port only
    if (bpf_ntohs(tcp->dest) == 7777) {
       unsigned char buf[] = {1, 1, 1, 2, 2};
-      int ret = bpf_perf_event_output(ctx, &events, BPF_F_CURRENT_CPU, &buf[0], 5);
+      int ret = bpf_ringbuf_output(&events, &buf[0], sizeof(buf), 0);
 
       // In case of perf_event failure abort
       // TODO: Probably this shouldn't impact the program and one should just pass the packet with XDP_PASS 

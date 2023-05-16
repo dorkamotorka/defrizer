@@ -6,12 +6,10 @@ import (
 	"log"
 	"net"
 
-	"github.com/cilium/ebpf/perf"
+	"github.com/cilium/ebpf/ringbuf"
 	"github.com/cilium/ebpf/rlimit"
 	"github.com/asavie/xdp"
 	"github.com/asavie/xdp/src/ebpf"
-	//"github.com/google/gopacket"
-	//"github.com/google/gopacket/layers"
 )
 
 func main() {
@@ -63,7 +61,7 @@ func main() {
 	}
 	defer program.Detach(Ifindex)
 
-	rd, err := perf.NewReader(program.Events, 4096)
+	rd, err := ringbuf.NewReader(program.Events)
 	if err != nil {
 	   panic(err)
 	}
