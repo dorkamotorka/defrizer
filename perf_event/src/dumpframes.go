@@ -1,14 +1,3 @@
-// Copyright 2019 Asavie Technologies Ltd. All rights reserved.
-//
-// Use of this source code is governed by a BSD-style license
-// that can be found in the LICENSE file in the root of the source
-// tree.
-
-/*
-dumpframes demostrates how to receive frames from a network link using
-github.com/asavie/xdp package, it sets up an XDP socket attached to a
-particular network link and dumps all frames it receives to standard output.
-*/
 package main
 
 import (
@@ -80,11 +69,13 @@ func main() {
 	}
 	defer rd.Close()
 
-	record, err := rd.Read()
-	if err != nil {
-	   panic(err)
-	}
+	for {
+	   record, err := rd.Read()
+	   if err != nil {
+	      panic(err)
+	   }
 
-	// Data is padded with 0 for alignment
-	fmt.Println("Sample:", record.RawSample)
+	   // Data is padded with 0 for alignment
+	   fmt.Println("Sample:", record.RawSample)
+	}
 }
