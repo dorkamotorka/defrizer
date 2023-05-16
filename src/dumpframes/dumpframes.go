@@ -12,7 +12,7 @@ particular network link and dumps all frames it receives to standard output.
 package main
 
 import (
-	"encoding/hex"
+	//"encoding/hex"
 	"flag"
 	"fmt"
 	"log"
@@ -132,9 +132,13 @@ func main() {
 			// in-place replacing the destination MAC address with
 			// broadcast address.
 			for i := 0; i < len(rxDescs); i++ {
-				pktData := xsk.GetFrame(rxDescs[i])
-				pkt := gopacket.NewPacket(pktData, layers.LayerTypeEthernet, gopacket.Default)
-				log.Printf("received frame:\n%s%+v", hex.Dump(pktData[:]), pkt)
+			  pktData := xsk.GetFrame(rxDescs[i])
+			  packet := gopacket.NewPacket(pktData, layers.LayerTypeEthernet, gopacket.Default)
+			  if tcpLayer := packet.Layer(layers.LayerTypeTCP); tcpLayer != nil {
+			     tcp, _ := tcpLayer.(*layers.TCP) // Get actual TCP data from this layer
+			     log.Printf("TCP(SrcPort=%d, DstPort=%d, DOFF=%d, SYN=%t, FIN=%t, ACK=%t)\n", tcp.SrcPort, tcp.DstPort, tcp.DataOffset, tcp.SYN, tcp.FIN, tcp.ACK)
+			     log.Printf("TCP Data: %s\n\n", tcp.Payload)
+			  }
 			}
 		}
 	}

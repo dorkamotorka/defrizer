@@ -32,3 +32,9 @@ Then you can execute it using:
 	sudo ./dumpframes
 
 In case you need to create a test veth, use this [tutorial](https://linuxconfig.org/configuring-virtual-network-interfaces-in-linux).
+
+## Test
+
+There's a client under `/client` directory, that sends a SYN packet with custom payload `"hello"`. You can run it using:
+
+	sudo pipenv run python main.py

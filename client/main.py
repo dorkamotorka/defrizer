@@ -18,7 +18,7 @@ payload = "hello"
 ip = IPv6(dst=target)
 tcp = TCP(sport=5555, dport=dport, flags=flags)
 raw = Raw(load=payload)
-packet = ip/tcp#/raw
+packet = ip/tcp/raw
 print(packet.payload)
 print(bytes(packet.payload))
 
