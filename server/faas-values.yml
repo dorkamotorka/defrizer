@@ -1,3 +1,6 @@
 gateway:
   image: dorkamotorka/gateway:latest-dev 
   scaleFromZero: true
+
+alertmanager:
+  create: false
