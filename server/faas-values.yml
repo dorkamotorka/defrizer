@@ -1,5 +1,5 @@
 gateway:
-  image: dorkamotorka/gateway:latest-dev 
+  image: dorkamotorka/gateway:0.4 
   scaleFromZero: true
 
 alertmanager:
