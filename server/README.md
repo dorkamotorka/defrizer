@@ -60,3 +60,6 @@ You can retrieve the credentials using:
 
 while the username is `admin`. 
 
+### Edit Gateway
+
+After you edit the gateway `main.go` don't forget to call `go fmt` to properly format it as well, otherwise the docker build will fail.

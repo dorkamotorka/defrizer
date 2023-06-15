@@ -1,4 +1,4 @@
-module github.com/asavie/xdp
+module github.com/dorkamotorka/defrizer/dumpframes
 
 go 1.16
 
