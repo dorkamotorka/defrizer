@@ -6,6 +6,8 @@ Install `faas-cli` to interact with the OpenFaaS gateway.
 
 ## Commands
 
+### Kubernetes
+
 	microk8s helm repo add openfaas https://openfaas.github.io/faas-netes/
 	microk8s kubectl apply -f https://raw.githubusercontent.com/openfaas/faas-netes/master/namespaces.yml
 	microk8s helm upgrade openfaas --install openfaas/openfaas --namespace openfaas -f faas-values.yml
@@ -23,6 +25,27 @@ Install `faas-cli` to interact with the OpenFaaS gateway.
 	faas-cli deploy -f hello-python.yml
 	echo "My name is Teo" | faas-cli invoke hello-python
 
+### faasd
+
+- Install instructions
+
+	git clone https://github.com/openfaas/faasd --depth=1
+	cd faasd/
+	./hack/install.sh
+
+	# View deployed containers
+	ctr -n openfaas containers list
+
+- Uninstall instructions
+
+	https://github.com/openfaas/faasd/blob/master/docs/DEV.md#uninstall
+
+#### Debugging 
+
+Debug information from the containerd containers is available using:
+
+	journalctl -u containerd | grep openfaas:gateway
+
 ## UI 
 
 To view the OpenFaaS UI on a local machine, use SSH port-forwarding:
@@ -36,3 +59,4 @@ You can retrieve the credentials using:
 	microk8s kubectl get secret -n openfaas basic-auth -o jsonpath="{.data.basic-auth-password}" | base64 --decode; echo
 
 while the username is `admin`. 
+
