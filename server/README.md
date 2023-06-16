@@ -39,15 +39,19 @@ Install `faas-cli` to interact with the OpenFaaS gateway.
 - Update Instructions
 
 	- On the local machine, build new gateway docker image by updating version in `/faas/gateway/Makefile` and calling `make`
-   	- Push new image using `docker push dorkamotorka:gateway:<version>
+   	- Push new image using `docker push dorkamotorka/gateway:(version)`
 	- Update gateway container version in `docker-compose.yaml`
-   	- Set up faasd by calling ./hack/install.sh  
+   	- Set up faasd by calling `./hack/install.sh`  
 
 - Uninstall Instructions
 
 		https://github.com/openfaas/faasd/blob/master/docs/DEV.md#uninstall
 
 #### Debugging 
+
+For the Ui, you can get the password by calling:
+
+	cat /var/lib/faasd/secrets/basic-auth-password
 
 Debug information from the containerd containers is available using:
 
