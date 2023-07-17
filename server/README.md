@@ -41,7 +41,8 @@ Install `faas-cli` to interact with the OpenFaaS gateway.
 	- On the local machine, build new gateway docker image by updating version in `/faas/gateway/Makefile` and calling `make`
    	- Push new image using `docker push dorkamotorka/gateway:(version)`
 	- Update gateway container version in `faasd/docker-compose.yaml` on the `faas` server
-   	- Set up faasd by calling `./hack/install.sh`  
+   	- Set up faasd by calling `./hack/install.sh`
+   	- eBPF program can be edited in `/faas/gateway/ebpf`
 
 - Uninstall Instructions
 
