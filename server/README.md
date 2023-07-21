@@ -1,10 +1,12 @@
+# Server POC
+
 ## Dependencies
 
 Install `faas-cli` to interact with the OpenFaaS gateway.
 
 	curl -sSL https://cli.openfaas.com | sudo -E sh	
 
-## Commands
+## FaaS Providers
 
 ### Kubernetes
 
