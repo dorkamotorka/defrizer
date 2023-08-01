@@ -32,6 +32,8 @@ sudo rm -rf /usr/lib/systemd/system/faasd-provider.service
 sudo rm -rf /usr/lib/systemd/system/faasd.service
 sudo rm -rf /usr/lib/systemd/system/containerd
 sudo systemctl daemon-reload
+sudo rm -rf /usr/local/bin/containerd
+sudo rm -rf /usr/local/bin/containerd-shim-runc-v2
 ```
 
 ## Loading BPF
