@@ -11,7 +11,7 @@ def send_tcp_syn(destination_ip, destination_port):
     syn_packet = ip_packet / tcp_syn_packet
 
     # Send the TCP SYN packet and receive the SYN-ACK response
-    syn_ack_response = sr1(syn_packet, verbose=True)
+    syn_ack_response = sr1(syn_packet, verbose=False)
 
     # Extract the acknowledgment number from the SYN-ACK response
     acknowledgment_number = syn_ack_response[TCP].seq + 1
@@ -35,11 +35,10 @@ def send_http_get_request(destination_ip, destination_port, acknowledgment_numbe
     final_packet = ack_packet / http_get_request
 
     # Send the HTTP GET request over the existing TCP connection
-    response_packet = sr1(final_packet, verbose=True)
+    response_packet = sr1(final_packet, verbose=False)
 
     if response_packet:
         print("HTTP GET request successful!")
-        print("Response:", response_packet.load)
     else:
         print("No response received.")
 

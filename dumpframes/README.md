@@ -6,6 +6,10 @@ Package github.com/asavie/xdp allows one to use [XDP sockets](https://lwn.net/Ar
 
 For usage examples, see the [documentation](https://pkg.go.dev/github.com/asavie/xdp) or the [examples/](https://github.com/asavie/xdp/tree/master/examples) directory.
 
+Really good research papers about XDP: 
+- https://dl.acm.org/doi/10.1145/3281411.3281443
+- https://dl.acm.org/doi/abs/10.1145/3371038
+
 ## Dependencies
 
 In order to make the `dumpframes` work, you need to install the following packages:

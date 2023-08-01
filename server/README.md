@@ -1,10 +1,12 @@
+# Server POC
+
 ## Dependencies
 
 Install `faas-cli` to interact with the OpenFaaS gateway.
 
 	curl -sSL https://cli.openfaas.com | sudo -E sh	
 
-## Commands
+## FaaS Providers
 
 ### Kubernetes
 
@@ -27,20 +29,32 @@ Install `faas-cli` to interact with the OpenFaaS gateway.
 
 ### faasd
 
-- Install instructions
+- Install Instructions
 
-	git clone https://github.com/openfaas/faasd --depth=1
-	cd faasd/
-	./hack/install.sh
+		git clone https://github.com/openfaas/faasd --depth=1
+		cd faasd/
+		./hack/install.sh
 
-	# View deployed containers
-	ctr -n openfaas containers list
+		# View deployed containers
+		ctr -n openfaas containers list
 
-- Uninstall instructions
+- Update Instructions
 
-	https://github.com/openfaas/faasd/blob/master/docs/DEV.md#uninstall
+	- On the local machine, build new gateway docker image by updating version in `/faas/gateway/Makefile` and calling `make`
+   	- Push new image using `docker push dorkamotorka/gateway:(version)`
+	- Update gateway container version in `faasd/docker-compose.yaml` on the `faas` server
+   	- Set up faasd by calling `./hack/install.sh`
+   	- eBPF program can be edited in `/faas/gateway/ebpf`
+
+- Uninstall Instructions
+
+		https://github.com/openfaas/faasd/blob/master/docs/DEV.md#uninstall
 
 #### Debugging 
+
+For the Ui, you can get the password by calling:
+
+	cat /var/lib/faasd/secrets/basic-auth-password
 
 Debug information from the containerd containers is available using:
 
@@ -60,3 +74,6 @@ You can retrieve the credentials using:
 
 while the username is `admin`. 
 
+### Edit Gateway
+
+After you edit the gateway `main.go` don't forget to call `go fmt` to properly format it as well, otherwise the docker build will fail.
