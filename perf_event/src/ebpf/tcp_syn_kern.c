@@ -59,16 +59,16 @@ SEC("xdp_event") int perf_event_test(struct xdp_md *ctx)
     goto out;
    }
 
-   /*
    bpf_printk("TCP(source=%u, dest=%u, seq=%d, ", bpf_ntohs(tcp->source), bpf_ntohs(tcp->dest), tcp->seq);
+   /*
    bpf_printk("ack_seq=%d, doff=%d, fin=%d, ", tcp->ack_seq, tcp->doff, tcp->fin);
    bpf_printk("rst=%d, psh=%d, urg=%d, ", tcp->rst, tcp->psh, tcp->urg);
    bpf_printk("ece=%d, cwr=%d, syn=%d\n", tcp->ece, tcp->cwr, tcp->syn);
    */
    // Forward TCP Packets from specific port only
    if (bpf_ntohs(tcp->dest) == 7777) {
-      unsigned char buf[] = {1, 1, 1, 2, 2};
-      int ret = bpf_ringbuf_output(&events, &buf[0], sizeof(buf), 0);
+      unsigned char buf[] = "hello!";
+      int ret = bpf_ringbuf_output(&events, &buf, sizeof(buf), 0);
 
       // In case of perf_event failure abort
       // TODO: Probably this shouldn't impact the program and one should just pass the packet with XDP_PASS 

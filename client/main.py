@@ -1,35 +1,52 @@
-from scapy.all import *
-import time
+from scapy.all import IP, TCP, send, sr1
 
-# Define the IPv6 address and port to send the packet to
-target = "::1"
+def send_tcp_syn(destination_ip, destination_port):
+    # Craft the IP packet
+    ip_packet = IP(dst=destination_ip)
 
-# Define destination port on the receiving side
-dport = 7777
+    # Craft the TCP SYN packet with a random source port
+    tcp_syn_packet = TCP(dport=destination_port, sport=10000, flags='S', seq=12345)
 
-# Define the TCP flags to use - SYN Packet flag 
-# NOTE: even if you don't specify this, TCP sends the SYN packet because this is always the first packet
-flags = "S"
+    # Combine the IP and TCP SYN packets
+    syn_packet = ip_packet / tcp_syn_packet
 
-# Define some random payload
-payload = "hello"
+    # Send the TCP SYN packet and receive the SYN-ACK response
+    syn_ack_response = sr1(syn_packet, verbose=True)
 
-# Construct the TCP SYN packet
-ip = IPv6(dst=target)
-tcp = TCP(sport=5555, dport=dport, flags=flags)
-raw = Raw(load=payload)
-packet = ip/tcp/raw
-print(packet.payload)
+    # Extract the acknowledgment number from the SYN-ACK response
+    acknowledgment_number = syn_ack_response[TCP].seq + 1
 
-# Send the SYN packet and wait for a response
-while True:
-    start_time = time.time()
-    syn_ack = send(packet)
-    end_time = time.time()
+    return acknowledgment_number
 
-    # If we received a response, print the response time
-    if syn_ack:
-        print(f"TCP ping response time: {end_time - start_time:.3f} seconds")
+def send_http_get_request(destination_ip, destination_port, acknowledgment_number, payload):
+    # Craft the IP packet
+    ip_packet = IP(dst=destination_ip)
+
+    # Craft the TCP ACK packet (to acknowledge the server's SYN-ACK)
+    tcp_ack_packet = TCP(dport=destination_port, sport=10000, flags='A', seq=12346, ack=acknowledgment_number)
+
+    # Combine the IP and TCP ACK packets
+    ack_packet = ip_packet / tcp_ack_packet
+
+    # Create the HTTP GET request with the desired payload
+    http_get_request = f"GET /function/env?namespace=openfaas-fn HTTP/1.1\r\nHost: {destination_ip}:{destination_port}\r\n\r\n"
+
+    # Combine the HTTP GET request data with the TCP ACK packet
+    final_packet = ack_packet / http_get_request
+
+    # Send the HTTP GET request over the existing TCP connection
+    response_packet = sr1(final_packet, verbose=True)
+
+    if response_packet:
+        print("HTTP GET request successful!")
+        print("Response:", response_packet.load)
     else:
-        print("TCP ping failed: no response (SYN-ACK) received")
-    time.sleep(0.5)
+        print("No response received.")
+
+if __name__ == "__main__":
+    destination_ip = '88.200.23.156'  # Replace with the actual destination IP address
+    destination_port = 8080           # Replace with the actual destination port
+    payload = "env"
+
+    acknowledgment_number = send_tcp_syn(destination_ip, destination_port)
+    send_http_get_request(destination_ip, destination_port, acknowledgment_number, payload)
