@@ -1,29 +1,36 @@
-from scapy.all import IP, TCP, send, sr1
+from scapy.all import IP, TCP, Raw, send, sr1, Padding
 
-def send_tcp_syn(destination_ip, destination_port):
+def send_tcp_syn(destination_ip, destination_port, payload):
     # Craft the IP packet
     ip_packet = IP(dst=destination_ip)
 
     # Craft the TCP SYN packet with a random source port
-    tcp_syn_packet = TCP(dport=destination_port, sport=10000, flags='S', seq=12345)
+    tcp_syn_packet = TCP(dport=destination_port, sport=20000, flags='S', seq=12345)
+
+    # Append custom payload
+    raw = Raw(load=payload)
+    pad = Padding()
+    pad.load = '\x00' * 6 
 
     # Combine the IP and TCP SYN packets
-    syn_packet = ip_packet / tcp_syn_packet
+    syn_packet = ip_packet / tcp_syn_packet / raw / pad
+    print(syn_packet[TCP].load)
+    print(len(syn_packet))
 
     # Send the TCP SYN packet and receive the SYN-ACK response
-    syn_ack_response = sr1(syn_packet, verbose=False)
+    syn_ack_response = sr1(syn_packet, verbose=True)
 
     # Extract the acknowledgment number from the SYN-ACK response
     acknowledgment_number = syn_ack_response[TCP].seq + 1
 
     return acknowledgment_number
 
-def send_http_get_request(destination_ip, destination_port, acknowledgment_number, payload):
+def send_http_get_request(destination_ip, destination_port, acknowledgment_number):
     # Craft the IP packet
     ip_packet = IP(dst=destination_ip)
 
     # Craft the TCP ACK packet (to acknowledge the server's SYN-ACK)
-    tcp_ack_packet = TCP(dport=destination_port, sport=10000, flags='A', seq=12346, ack=acknowledgment_number)
+    tcp_ack_packet = TCP(dport=destination_port, sport=20000, flags='A', seq=12346, ack=acknowledgment_number)
 
     # Combine the IP and TCP ACK packets
     ack_packet = ip_packet / tcp_ack_packet
@@ -45,7 +52,7 @@ def send_http_get_request(destination_ip, destination_port, acknowledgment_numbe
 if __name__ == "__main__":
     destination_ip = '88.200.23.156'  # Replace with the actual destination IP address
     destination_port = 8080           # Replace with the actual destination port
-    payload = "env"
+    payload = "env00000"
 
-    acknowledgment_number = send_tcp_syn(destination_ip, destination_port)
-    send_http_get_request(destination_ip, destination_port, acknowledgment_number, payload)
+    acknowledgment_number = send_tcp_syn(destination_ip, destination_port, payload)
+    send_http_get_request(destination_ip, destination_port, acknowledgment_number)
