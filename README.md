@@ -89,3 +89,13 @@ sudo python3 main.py
 ```
 ssh -L 127.0.0.1:5000:127.0.0.1:5000 -N ubuntu@88.200.23.156
 ```
+
+## TCP Client
+
+Disable sending of TCP RST packet using:
+```
+sudo iptables -A OUTPUT -p tcp --tcp-flags RST RST --sport <PORT> -j DROP
+```
+
+
+##
