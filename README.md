@@ -78,6 +78,11 @@ sudo tcpdump -i [NET.INTERFACE] "tcp[tcpflags] & (tcp-syn) != 0"
 sudo cat  /sys/kernel/debug/tracing/trace_pipe
 ```
 
+* Debug TCP SYN packets:
+```
+sudo tshark -i enp5s0 -Y "ip.addr == 193.2.76.142 and tcp.flags.syn==1 and tcp.flags.ack==0" -V
+```
+
 ## Setup TC tool
 
 * Call from `tcgui` directory of the FaaS server:
@@ -96,6 +101,3 @@ Disable sending of TCP RST packet using:
 ```
 sudo iptables -A OUTPUT -p tcp --tcp-flags RST RST --sport <PORT> -j DROP
 ```
-
-
-##
