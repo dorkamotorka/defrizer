@@ -6,7 +6,8 @@ def send_tcp_syn(destination_ip, destination_port, source_port, payload):
 
     # Craft the TCP SYN packet with a random source port
     # TODO: Add (254, namespace)
-    tcp_syn_packet = TCP(dport=destination_port, sport=source_port, flags='S', options=[(253, payload)])
+    tcp_syn_packet = TCP(dport=destination_port, sport=source_port, flags='S', options=[(254, (0xf989, 0xcafe, 0x0102, 0x0002)), ('NOP', 0), ('NOP', 0)])
+    print(tcp_syn_packet.options)
 
     # Combine the IP and TCP SYN packets
     syn_packet = ip_packet / tcp_syn_packet
@@ -67,7 +68,7 @@ def pad(payload):
 if __name__ == "__main__":
     destination_ip = '88.200.23.156'  # Replace with the actual destination IP address
     destination_port = 8080           # Replace with the actual destination port
-    source_port = 80
+    source_port = 110
     payload = "env"
 
     acknowledgment_number, sequence_number = send_tcp_syn(destination_ip, destination_port, source_port, payload)
