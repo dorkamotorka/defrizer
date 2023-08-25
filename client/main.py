@@ -6,7 +6,7 @@ def send_tcp_syn(destination_ip, destination_port, source_port, payload):
 
     # Craft the TCP SYN packet with a random source port
     # TODO: Add (254, namespace)
-    tcp_syn_packet = TCP(dport=destination_port, sport=source_port, flags='S', options=[(254, (0xf989, 0xcafe, 0x0102, 0x0002)), ('NOP', 0), ('NOP', 0)])
+    tcp_syn_packet = TCP(dport=destination_port, sport=source_port, flags='S', options=[(253, payload)])
     print(tcp_syn_packet.options)
 
     # Combine the IP and TCP SYN packets
@@ -22,7 +22,7 @@ def send_tcp_syn(destination_ip, destination_port, source_port, payload):
 
     return acknowledgment_number, sequence_number
 
-def send_http_get_request(destination_ip, destination_port, source_port, acknowledgment_number, sequence_number):
+def send_http_get_request(destination_ip, destination_port, source_port, acknowledgment_number, sequence_number, payload):
     # Craft the IP packet
     ip_packet = IP(dst=destination_ip)
 
@@ -33,7 +33,7 @@ def send_http_get_request(destination_ip, destination_port, source_port, acknowl
     ack_packet = ip_packet / tcp_ack_packet
 
     # Create the HTTP GET request with the desired payload
-    http_get_request = f"GET /function/env?namespace=openfaas-fn HTTP/1.1\r\nHost: {destination_ip}:{destination_port}\r\n\r\n"
+    http_get_request = f"GET /function/{payload}?namespace=openfaas-fn HTTP/1.1\r\nHost: {destination_ip}:{destination_port}\r\n\r\n"
 
     # Combine the HTTP GET request data with the TCP ACK packet
     http_packet = ack_packet / http_get_request
@@ -72,4 +72,4 @@ if __name__ == "__main__":
     payload = "env"
 
     acknowledgment_number, sequence_number = send_tcp_syn(destination_ip, destination_port, source_port, payload)
-    send_http_get_request(destination_ip, destination_port, source_port, acknowledgment_number, sequence_number)
+    send_http_get_request(destination_ip, destination_port, source_port, acknowledgment_number, sequence_number, payload)
