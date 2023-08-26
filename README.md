@@ -101,3 +101,8 @@ Disable sending of TCP RST packet using:
 ```
 sudo iptables -A OUTPUT -p tcp --tcp-flags RST RST --sport <PORT> -j DROP
 ```
+
+And then check the response time using:
+```
+sudo tshark -i enp5s0 -Y "ip.dst == 88.200.23.155 and http" -V
+```
